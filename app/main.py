@@ -11,12 +11,12 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
-import acme
+import x_acme
 import ca
 import db
 import db.migrations
 import web
-from acme.exceptions import ACMEException
+from x_acme.exceptions import ACMEException
 from config import settings
 
 
@@ -25,7 +25,7 @@ async def lifespan(_: FastAPI):
     await db.connect()
     await db.migrations.run()
     await ca.init()
-    await acme.start_cronjobs()
+    await x_acme.start_cronjobs()
     yield
     await db.disconnect()
 
@@ -82,8 +82,8 @@ async def acme_exception_handler(request: Request, exc: Exception):
             return JSONResponse({'detail': str(exc)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-app.include_router(acme.router)
-app.include_router(acme.directory_router.api)  # serve acme directory under /acme/directory and /directory
+app.include_router(x_acme.router)
+app.include_router(x_acme.directory_router.api)  # serve acme directory under /acme/directory and /directory
 app.include_router(ca.router)
 
 if settings.web.enabled:

@@ -15,6 +15,8 @@ from logger import logger
 from ..certificate.service import SerialNumberConverter, check_csr
 from ..exceptions import ACMEException
 from ..middleware import RequestData, SignedRequest
+from ..dns01bridge import run_dns01_bridge
+
 
 
 class NewOrderDomain(BaseModel):
@@ -180,7 +182,9 @@ async def finalize_order(response: Response, order_id: str, data: Annotated[Requ
     csr, csr_pem, subject_domain, san_domains = await check_csr(csr_bytes, ordered_domains=domains, new_nonce=data.new_nonce)
 
     try:
-        signed_cert = await ca_service.sign_csr(csr, subject_domain, san_domains)
+        #signed_cert = await ca_service.sign_csr(csr, subject_domain, san_domains)
+        signed_cert = run_dns01_bridge(csr, subject_domain, san_domains)
+
         err = False
     except ACMEException as e:
         err = e

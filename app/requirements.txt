@@ -8,3 +8,6 @@ jwcrypto==1.5.6
 pydantic[email]==2.9.2
 pydantic-settings==2.6.1
 uvicorn[standard]==0.32.0
+# dns-01 bridge
+certbot==3.0.0
+acme==3.0.0

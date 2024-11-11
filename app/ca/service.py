@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
 import db
-from acme.certificate.service import SerialNumberConverter
+from x_acme.certificate.service import SerialNumberConverter
 from config import settings
 
 from .model import SignedCertInfo

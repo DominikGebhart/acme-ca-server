@@ -7,7 +7,7 @@ from fastapi import APIRouter, Response
 from pydantic import constr
 
 import db
-from acme.certificate.service import SerialNumberConverter
+from x_acme.certificate.service import SerialNumberConverter
 from config import settings
 from logger import logger
 
