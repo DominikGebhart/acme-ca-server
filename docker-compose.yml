@@ -1,0 +1,39 @@
+services:
+
+  dns01-acme-bridge:
+    image: localhost/acme
+    build: .
+    env_file: ".env"
+    restart: always
+    environment:
+      EXTERNAL_URL: http://localhost:8080
+      DB_DSN: postgresql://postgres:secret@db/postgres
+    ports:
+      - "8080:8080"
+    networks:
+      - net
+    volumes:
+      - certbot:/usr/lib/acme-server/etc/letsencrypt
+      #- ./ca.key:/import/ca.key:ro # needed once to import new ca
+      #- ./ca.pem:/import/ca.pem:ro # needed once to import new ca
+    mem_limit: 250m
+
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: secret
+    #ports:
+    #   - "5432:5432"
+    networks:
+      - net
+    volumes:
+      - db:/var/lib/postgresql/data
+    mem_limit: 250m
+
+networks:
+  net:
+
+volumes:
+  db:
+  certbot:

@@ -108,8 +108,8 @@ def run_dns01_bridge(x509_csr: x509.CertificateSigningRequest, subject_domain: s
     config["domains"] = None
 
     config["authenticator"] = "dns-hetzner"
-    config["dns_hetzner_propagation_seconds"] = 30
-    config["dns_hetzner_credentials"] = "/tmp/hetzner.ini"
+    config["dns_hetzner_propagation_seconds"] = int(os.getenv("DNS01_HETZNER_PROPAGATION_SECONDS", "30"))
+    config["dns_hetzner_credentials"] = os.getenv("DNS01_HETZNER_CREDENTIALS_FILE", "hetzner.ini")
 
     config["cert_path"] = "/tmp" # needed even if we don't save any
     config["chain_path"] = "/tmp" # needed even if we don't save any
@@ -121,12 +121,12 @@ def run_dns01_bridge(x509_csr: x509.CertificateSigningRequest, subject_domain: s
     #config["webroot_map"] = {}
 
     config["noninteractive_mode"] = False
-    config["dry_run"] = True
-    config["config_dir"]="/tmp/etc/letsencrypt"
-    config["work_dir"]="/tmp/var/lib/letsencrypt"
-    config["logs_dir"]="/tmp/var/log/letsencrypt"        
+    config["dry_run"] = False # Should matter only for codepaths when we also set the server
+    config["config_dir"] = os.getenv("DSN01_CERTBOT_DATA_BASE_PATH", "/tmp") + "/etc/letsencrypt"
+    config["work_dir"] = os.getenv("DSN01_CERTBOT_DATA_BASE_PATH", "/tmp") + "/var/lib/letsencrypt"
+    config["logs_dir"] = os.getenv("DSN01_CERTBOT_DATA_BASE_PATH", "/tmp") + "/var/log/letsencrypt"        
 
-    config["server"]="https://acme-staging-v02.api.letsencrypt.org/directory"
+    config["server"]=os.getenv('DSN01_CERTBOT_SERVER_URL', 'https://acme-staging-v02.api.letsencrypt.org/directory')
 
     config["email"]=None
     config["register_unsafely_without_email"]=True # Muss gesetzt werden bei email=None

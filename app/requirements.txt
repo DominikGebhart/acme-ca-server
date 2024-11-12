@@ -11,3 +11,5 @@ uvicorn[standard]==0.32.0
 # dns-01 bridge
 certbot==3.0.0
 acme==3.0.0
+# dns-hetzner plugin
+certbot-dns-hetzner==1.0.3
