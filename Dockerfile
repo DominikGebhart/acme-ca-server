@@ -14,7 +14,7 @@ RUN mkdir -p /usr/lib/acme-server/etc/letsencrypt && \
     chown -R appuser:appuser /usr/lib/acme-server
 COPY --chown=appuser entrypoint.sh /
 
-USER appuser
+#USER appuser
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--no-server-header"]

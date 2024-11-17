@@ -14,8 +14,6 @@ services:
       - net
     volumes:
       - certbot:/usr/lib/acme-server/etc/letsencrypt
-      #- ./ca.key:/import/ca.key:ro # needed once to import new ca
-      #- ./ca.pem:/import/ca.pem:ro # needed once to import new ca
     mem_limit: 250m
 
   db:
@@ -37,3 +35,4 @@ networks:
 volumes:
   db:
   certbot:
+
