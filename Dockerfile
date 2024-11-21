@@ -1,20 +1,28 @@
 FROM docker.io/python:3.12.7-alpine
 
 RUN adduser --no-create-home --disabled-password appuser && \
-    apk update --no-cache
+    apk --no-cache --update add git
 
 WORKDIR /app
 EXPOSE 8080/tcp
 ENV PYTHONUNBUFFERED=True
 
 COPY app /app
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt && \
+    pip install --no-cache-dir --upgrade "certbot-dns-hetzner==1.0.3"
+
 RUN mkdir -p /usr/lib/acme-server/etc/letsencrypt && \
     mkdir -p /usr/lib/acme-server/var/lib/letsencrypt && \
     chown -R appuser:appuser /usr/lib/acme-server
 COPY --chown=appuser entrypoint.sh /
 
-#USER appuser
+
+USER appuser
+
+# strange error when a path is set here
+ENV MAIL={} 
+ENV CA_ENABLED=false
+
 
 ENTRYPOINT ["sh", "/entrypoint.sh"]
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--no-server-header"]

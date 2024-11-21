@@ -3,17 +3,30 @@ services:
   dns01-acme-bridge:
     image: localhost/acme
     build: .
-    env_file: ".env"
     restart: always
     environment:
       EXTERNAL_URL: http://localhost:8080
       DB_DSN: postgresql://postgres:secret@db/postgres
+      DNS01_HETZNER_API_TOKEN: ${DNS01_HETZNER_API_TOKEN:-CHANGE_ME}
+      DNS01_FINALIZE_TIMEOUT_SECONDS: ""
+      DNS01_LOG_LEVEL: "INFO"
+      DNS01_CERTBOT_CLI_ARGS: > 
+        --authenticator=dns-hetzner
+        --dns-hetzner-credentials=/usr/lib/acme-server/hetzner.ini
+        --dns-hetzner-propagation-seconds=0
+        --dns-hetzner-propagation-check=True
+        --dns-hetzner-propagation-check-seconds 8 1 1 1 1 2 2 3 3 5
+        --dns-hetzner-propagation-check-nameserver=213.133.100.102
+        --dns-hetzner-propagation-check-nameserver=213.239.204.242
+        --dns-hetzner-propagation-check-nameserver=193.47.99.4
+        --server=https://acme-staging-v02.api.letsencrypt.org/directory
+    command: ["/bin/sh", "-c", "echo -e \"dns_hetzner_api_token = $${DNS01_HETZNER_API_TOKEN}\" > /usr/lib/acme-server/hetzner.ini && uvicorn main:app --host 0.0.0.0 --port 8080 --no-server-header"]
     ports:
       - "8080:8080"
     networks:
       - net
     volumes:
-      - certbot:/usr/lib/acme-server/etc/letsencrypt
+      - acme:/usr/lib/acme-server
     mem_limit: 250m
 
   db:
@@ -21,8 +34,8 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: secret
-    #ports:
-    #   - "5432:5432"
+    ports:
+       - "5432:5432"
     networks:
       - net
     volumes:
@@ -34,5 +47,5 @@ networks:
 
 volumes:
   db:
-  certbot:
+  acme:
 

@@ -31,6 +31,81 @@ from cryptography import x509
 from cryptography.hazmat.primitives.serialization import Encoding
 from josepy import b64
 
+import shlex
+import datetime
+
+#import logging
+#logging.basicConfig()
+#logging.getLogger().setLevel(logging.getLevelName(os.getenv("DNS01_LOG_LEVEL", 'INFO')))
+from logger import logger
+
+logger.setLevel(os.getenv("DNS01_LOG_LEVEL", 'INFO'))
+
+# Most robust way to configure certbot turned out to be via its commandline arguments
+# We set most configuration here and just add some real parameters via DNS01_CERTBOT_CLI_ARGS
+params=["certonly", 
+
+    "--cert-path=/tmp", # needed even if we don't save any
+    "--chain-path=/tmp", # needed even if we don't save any
+    "--fullchain-path=/tmp", # needed even if we don't save any
+    #"--noninteractive",
+    #"--dry-run",
+    "--debug",
+    "--config-dir=/tmp/etc/letsencrypt", # TODO: See if we can remove or move to persistent volume
+    "--work-dir=/tmp/var/lib/letsencrypt", # TODO: See if we can remove or move to persistent volume
+    "--logs-dir=/tmp/var/log/letsencrypt", # TODO: See if we can remove or move to persistent volume
+    #"--server=https://acme-staging-v02.api.letsencrypt.org/directory",
+    "--agree-tos",
+    "--no-eff-email",
+    "--register-unsafely-without-email"
+    ]
+
+certbot_cli_args_str = os.getenv("DNS01_CERTBOT_CLI_ARGS", None)
+
+if certbot_cli_args_str is None:
+    raise ValueError('DNS01_CERTBOT_CLI_ARGS not set')
+
+certbot_cli_args_str_merged = f"{certbot_cli_args_str}\n{' '.join(params)}"
+certbot_cli_args = shlex.split(certbot_cli_args_str_merged) 
+
+logger.debug(f"Certbot cli arguments: {certbot_cli_args}")
+
+def run_dns01_bridge(http01_x509_csr: x509.CertificateSigningRequest, subject_domain: str, san_domains: list[str]) -> ca_model.SignedCertInfo:
+
+    
+
+    c_pluginRegistry = certbot_disco.PluginsRegistry.find_all()
+    c_NamespaceConfig = cli.prepare_and_parse_args(c_pluginRegistry, certbot_cli_args)
+
+    # finalize namespace
+    c_NamespaceConfig.csr = True
+    c_NamespaceConfig.finalize_timeout_seconds = os.getenv("DNS01_FINALIZE_TIMEOUT_SECONDS", None)
+    c_NamespaceConfig.set_argument_sources({})
+    [setattr(c_NamespaceConfig, h + "_hook", None) for h in ("pre", "post", "renew", "manual_auth", "manual_cleanup")]
+    
+    # hand over csr from http01
+    typ, csr, domains = certbot_crypto_util.import_csr_file(None, http01_x509_csr.public_bytes(Encoding.PEM))
+    c_NamespaceConfig.actual_csr = (csr, typ)
+
+    # FIXME: Check support for san domains
+
+    # obtain_certificate_from_csr requires config.domains to be set    
+    c_NamespaceConfig.domains = []
+    for domain in domains:
+        domain = certbot_util.enforce_domain_sanity(domain.strip())
+        if domain not in c_NamespaceConfig.domains:
+            c_NamespaceConfig.domains.append(domain)
+
+    
+    # init certbot logging
+    with certbot_main.make_displayer(c_NamespaceConfig) as displayer:
+        certbot_main.display_obj.set_display(displayer)
+    
+    # Run certbot DNS01
+    cert_bytes, chain_bytes = run_dns01_certonly(config=c_NamespaceConfig, plugins=c_pluginRegistry)
+    # return result in expected format
+    cert = x509.load_pem_x509_certificate(cert_bytes, None)
+    return ca_model.SignedCertInfo(cert, (cert_bytes + chain_bytes).decode("utf-8"))
 
 def run_dns01_certonly(config: configuration.NamespaceConfig, plugins: plugins_disco.PluginsRegistry) -> Tuple[
                            Optional[str], Optional[str], Optional[str], Optional[bytes], Optional[bytes]]:
@@ -51,7 +126,10 @@ def run_dns01_certonly(config: configuration.NamespaceConfig, plugins: plugins_d
 
     """
     _, auth = plug_sel.choose_configurator_plugins(config, plugins, "certonly")
+    
     le_client = _init_le_client(config, auth, None)
+    if config.finalize_timeout_seconds:
+        le_client.finalize_until_utc = datetime.datetime.utcnow() + datetime.timedelta(0, int(config.finalize_timeout_seconds))
 
     if not config.csr:        
         raise errors.ConfigurationError("Supports only csr mode")
@@ -92,76 +170,3 @@ def _csr_get_and_save_cert(config: configuration.NamespaceConfig,
     cert, chain = le_client.obtain_certificate_from_csr(csr)
 
     return cert, chain
-
-
-
-
-
-
-
-
-
-
-def run_dns01_bridge(x509_csr: x509.CertificateSigningRequest, subject_domain: str, san_domains: list[str]) -> ca_model.SignedCertInfo:
-
-    config = copy.deepcopy(constants.CLI_DEFAULTS)
-    config["domains"] = None
-
-    config["authenticator"] = "dns-hetzner"
-    config["dns_hetzner_propagation_seconds"] = int(os.getenv("DNS01_HETZNER_PROPAGATION_SECONDS", "30"))
-    config["dns_hetzner_credentials"] = os.getenv("DNS01_HETZNER_CREDENTIALS_FILE", "hetzner.ini")
-
-    config["cert_path"] = "/tmp" # needed even if we don't save any
-    config["chain_path"] = "/tmp" # needed even if we don't save any
-    config["fullchain_path"] = "/tmp" # needed even if we don't save any
-    
-    #config["authenticator"] = "webroot"
-    #config["webroot"] = True
-    #config["webroot_path"] = ["/tmp"]
-    #config["webroot_map"] = {}
-
-    config["noninteractive_mode"] = False
-    config["dry_run"] = False # Should matter only for codepaths when we also set the server
-    config["config_dir"] = os.getenv("DSN01_CERTBOT_DATA_BASE_PATH", "/tmp") + "/etc/letsencrypt"
-    config["work_dir"] = os.getenv("DSN01_CERTBOT_DATA_BASE_PATH", "/tmp") + "/var/lib/letsencrypt"
-    config["logs_dir"] = os.getenv("DSN01_CERTBOT_DATA_BASE_PATH", "/tmp") + "/var/log/letsencrypt"        
-
-    config["server"]=os.getenv('DSN01_CERTBOT_SERVER_URL', 'https://acme-staging-v02.api.letsencrypt.org/directory')
-
-    config["email"]=None
-    config["register_unsafely_without_email"]=True # Muss gesetzt werden bei email=None
-
-    config["eff_email"]=None
-    config["tos"]=True
-    config["verb"] = "certonly"
-    config["csr"] = "True"
-
-    c_Namespace = argparse.Namespace(**config)
-    c_NamespaceConfig = certbot_configuration.NamespaceConfig(c_Namespace)
-    c_NamespaceConfig.set_argument_sources({})
-    [setattr(c_NamespaceConfig, h + "_hook", None) for h in ("pre", "post", "renew", "manual_auth", "manual_cleanup")]
-
-    typ, csr, domains = certbot_crypto_util.import_csr_file(None, x509_csr.public_bytes(Encoding.PEM))
-
-    # This is not necessary for webroot to work, however,
-    # obtain_certificate_from_csr requires config.domains to be set
-    
-    c_NamespaceConfig.domains = []
-
-    for domain in domains:
-        domain = certbot_util.enforce_domain_sanity(domain.strip())
-        if domain not in c_NamespaceConfig.domains:
-            c_NamespaceConfig.domains.append(domain)
-
-    c_NamespaceConfig.actual_csr = (csr, typ)
-
-    with certbot_main.make_displayer(c_NamespaceConfig) as displayer:
-        certbot_main.display_obj.set_display(displayer)
-
-
-    c_pluginRegistry = certbot_disco.PluginsRegistry.find_all()
-
-    cert_bytes, chain_bytes = run_dns01_certonly(config=c_NamespaceConfig, plugins=c_pluginRegistry)
-
-    cert = x509.load_pem_x509_certificate(cert_bytes, None)
-    return ca_model.SignedCertInfo(cert, (cert_bytes + chain_bytes).decode("utf-8"))
