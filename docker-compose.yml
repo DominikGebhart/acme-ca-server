@@ -8,7 +8,7 @@ services:
       EXTERNAL_URL: http://localhost:8080
       DB_DSN: postgresql://postgres:secret@db/postgres
       DNS01_HETZNER_API_TOKEN: ${DNS01_HETZNER_API_TOKEN:-CHANGE_ME}
-      DNS01_FINALIZE_TIMEOUT_SECONDS: ""
+      DNS01_FINALIZE_TIMEOUT_SECONDS: "42"
       DNS01_LOG_LEVEL: "INFO"
       DNS01_CERTBOT_CLI_ARGS: > 
         --authenticator=dns-hetzner
