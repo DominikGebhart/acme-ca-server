@@ -7,7 +7,7 @@ WORKDIR /app
 EXPOSE 8080/tcp
 ENV PYTHONUNBUFFERED=True
 
-COPY app /app
+COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt && \
     pip install --no-cache-dir --upgrade "certbot-dns-hetzner==1.0.3"
 
@@ -29,3 +29,5 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--no-server-
 
 HEALTHCHECK --start-period=30s --interval=3m --timeout=1s \
   CMD wget --quiet --spider http://127.0.0.1:8080/acme/directory || exit 1
+
+COPY app /app

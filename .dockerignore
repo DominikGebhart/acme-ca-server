@@ -1,2 +1,6 @@
 __pycache__
-tests/
+.github
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.vscode

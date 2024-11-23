@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from email.mime.text import MIMEText
+from pathlib import Path
 from typing import Literal
 
 from aiosmtplib import SMTP
@@ -8,7 +9,7 @@ from jinja2 import Environment, FileSystemLoader
 from config import settings
 from logger import logger
 
-template_engine = Environment(loader=FileSystemLoader('mail/templates'), enable_async=True, autoescape=True)
+template_engine = Environment(loader=FileSystemLoader(Path(__file__).parent / 'templates'), enable_async=True, autoescape=True)  # pylint: disable=duplicate-code
 default_params = {  # pylint: disable=duplicate-code
     'app_title': settings.web.app_title,
     'app_desc': settings.web.app_description,
@@ -58,7 +59,7 @@ async def send_certs_will_expire_warn_mail(*, receiver: str, domains: list[str],
             'domains': domains,
             'expires_at': expires_at,
             'serial_number': serial_number,
-            'expires_in_days': (expires_at.replace(tzinfo=None) - datetime.utcnow()).days,
+            'expires_in_days': (expires_at - datetime.now(timezone.utc)).days,
         },
     )
 
