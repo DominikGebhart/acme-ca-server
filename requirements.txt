@@ -10,8 +10,8 @@ pydantic-settings==2.6.1
 uvicorn[standard]==0.32.0
 # dns-01 bridge
 #acme==3.0.0
-acme @ git+https://github.com/DominikGebhart/certbot.git@client_stop_before_finalize#egg=acme&subdirectory=acme
+acme @ git+https://github.com/DominikGebhart/certbot.git@customized#egg=acme&subdirectory=acme
 #certbot==3.0.0
-certbot @ git+https://github.com/DominikGebhart/certbot.git@client_stop_before_finalize#egg=certbot&subdirectory=certbot
+certbot @ git+https://github.com/DominikGebhart/certbot.git@customized#egg=certbot&subdirectory=certbot
 # argv from string
 mslex==1.3.0
