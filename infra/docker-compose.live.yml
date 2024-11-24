@@ -27,10 +27,10 @@ services:
       - ./acme_data:/usr/lib/acme-server/etc/letsencrypt
     mem_limit: 250m
     environment:
-      EXTERNAL_URL: "https://$${EXTERNAL_DOMAIN_LIVE}"
+      EXTERNAL_URL: "https://${EXTERNAL_DOMAIN_LIVE}"
       DB_DSN: postgresql://postgres:secret@db-live/postgres
       DNS01_HETZNER_API_TOKEN: ${DNS01_HETZNER_API_TOKEN:-CHANGE_ME}
-      DNS01_FINALIZE_TIMEOUT_SECONDS: "42"
+      DNS01_FINALIZE_TIMEOUT_SECONDS: "38"
       DNS01_LOG_LEVEL: "INFO"
       DNS01_CERTBOT_CLI_ARGS: > 
         --authenticator=dns-hetzner
@@ -63,10 +63,10 @@ services:
       - ./staging_acme_data:/usr/lib/acme-server/etc/letsencrypt
     mem_limit: 250m
     environment:
-      EXTERNAL_URL: "https://$${EXTERNAL_DOMAIN_STAGING}"
+      EXTERNAL_URL: "https://${EXTERNAL_DOMAIN_STAGING}"
       DB_DSN: postgresql://postgres:secret@db-staging/postgres
       DNS01_HETZNER_API_TOKEN: ${DNS01_HETZNER_API_TOKEN:-CHANGE_ME}
-      DNS01_FINALIZE_TIMEOUT_SECONDS: "42"
+      DNS01_FINALIZE_TIMEOUT_SECONDS: "38"
       DNS01_LOG_LEVEL: "INFO"
       DNS01_CERTBOT_CLI_ARGS: > 
         --authenticator=dns-hetzner

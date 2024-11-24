@@ -7,4 +7,5 @@ CADDY_CA_URL=https://acme-staging-v02.api.letsencrypt.org/directory
 #CADDY_CA_URL=https://acme-v02.api.letsencrypt.org/directory
 ```
 
-live set to use letsencrypt staging url to be safe, switch when setup validated
+* live set to use letsencrypt staging url to be safe, switch when setup validated
+* incoming acme http01 register account requests need to have a contact e-mail set
