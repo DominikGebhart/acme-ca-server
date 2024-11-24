@@ -1,0 +1,113 @@
+services:
+  caddy:
+    build: caddy
+    container_name: caddy
+    restart: always
+    environment:
+      - UID=1000
+      - GID=1000
+    ports:
+      - 443:443
+    networks:
+      - net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./caddy_data:/data
+
+    
+  bridge-live:
+    image: localhost/acme
+    build: ..
+    restart: always
+    depends_on:
+      - db-live
+    networks:
+      - net
+    volumes:
+      - ./acme_data:/usr/lib/acme-server/etc/letsencrypt
+    mem_limit: 250m
+    environment:
+      EXTERNAL_URL: "https://$${EXTERNAL_DOMAIN_LIVE}"
+      DB_DSN: postgresql://postgres:secret@db-live/postgres
+      DNS01_HETZNER_API_TOKEN: ${DNS01_HETZNER_API_TOKEN:-CHANGE_ME}
+      DNS01_FINALIZE_TIMEOUT_SECONDS: "42"
+      DNS01_LOG_LEVEL: "INFO"
+      DNS01_CERTBOT_CLI_ARGS: > 
+        --authenticator=dns-hetzner
+        --dns-hetzner-credentials=/usr/lib/acme-server/hetzner.ini
+        --dns-hetzner-propagation-seconds=0
+        --dns-hetzner-propagation-check=True
+        --dns-hetzner-propagation-check-seconds 8 1 1 1 1 2 2 3 3 5
+        --dns-hetzner-propagation-check-nameserver=213.133.100.102
+        --dns-hetzner-propagation-check-nameserver=213.239.204.242
+        --dns-hetzner-propagation-check-nameserver=193.47.99.4
+        --server=https://acme-staging-v02.api.letsencrypt.org/directory
+    command: ["/bin/sh", "-c", "echo -e \"dns_hetzner_api_token = $${DNS01_HETZNER_API_TOKEN}\" > /usr/lib/acme-server/hetzner.ini && uvicorn main:app --host 0.0.0.0 --port 8080 --no-server-header"]
+    labels:
+      caddy: ${EXTERNAL_DOMAIN_LIVE}
+      caddy.reverse_proxy: "{{upstreams 8080}}"
+      caddy.reverse_proxy.header_up: X-Read-IP {remote_host}
+      caddy.tls.dns: hetzner ${DNS01_HETZNER_API_TOKEN}
+      caddy.tls.resolvers:  213.133.100.102 213.239.204.242 193.47.99.4
+      caddy.tls.ca: ${CADDY_CA_URL}
+
+  bridge-staging:
+    image: localhost/acme
+    build: ..
+    restart: always
+    depends_on:
+      - db-staging
+    networks:
+      - net
+    volumes:
+      - ./staging_acme_data:/usr/lib/acme-server/etc/letsencrypt
+    mem_limit: 250m
+    environment:
+      EXTERNAL_URL: "https://$${EXTERNAL_DOMAIN_STAGING}"
+      DB_DSN: postgresql://postgres:secret@db-staging/postgres
+      DNS01_HETZNER_API_TOKEN: ${DNS01_HETZNER_API_TOKEN:-CHANGE_ME}
+      DNS01_FINALIZE_TIMEOUT_SECONDS: "42"
+      DNS01_LOG_LEVEL: "INFO"
+      DNS01_CERTBOT_CLI_ARGS: > 
+        --authenticator=dns-hetzner
+        --dns-hetzner-credentials=/usr/lib/acme-server/hetzner.ini
+        --dns-hetzner-propagation-seconds=0
+        --dns-hetzner-propagation-check=True
+        --dns-hetzner-propagation-check-seconds 8 1 1 1 1 2 2 3 3 5
+        --dns-hetzner-propagation-check-nameserver=213.133.100.102
+        --dns-hetzner-propagation-check-nameserver=213.239.204.242
+        --dns-hetzner-propagation-check-nameserver=193.47.99.4
+        --server=https://acme-staging-v02.api.letsencrypt.org/directory
+    command: ["/bin/sh", "-c", "echo -e \"dns_hetzner_api_token = $${DNS01_HETZNER_API_TOKEN}\" > /usr/lib/acme-server/hetzner.ini && uvicorn main:app --host 0.0.0.0 --port 8080 --no-server-header"]
+    labels:
+      caddy: ${EXTERNAL_DOMAIN_STAGING}
+      caddy.reverse_proxy: "{{upstreams 8080}}"
+      caddy.reverse_proxy.header_up: X-Read-IP {remote_host}
+      caddy.tls.dns: hetzner ${DNS01_HETZNER_API_TOKEN}
+      caddy.tls.resolvers:  213.133.100.102 213.239.204.242 193.47.99.4
+      caddy.tls.ca: ${CADDY_CA_URL}
+
+  db-live:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+    networks:
+      - net
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
+    mem_limit: 250m
+
+  db-staging:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+    networks:
+      - net
+    volumes:
+      - ./staging_db_data:/var/lib/postgresql/data
+    mem_limit: 250m
+
+networks:
+  net:

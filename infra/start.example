@@ -1,0 +1,9 @@
+# source this file to get the env variables available to docker compose, i.e. `. start.example`
+#
+export EXTERNAL_DOMAIN_LIVE=live.acme.example.com
+export EXTERNAL_DOMAIN_STAGING=staging.acme.example.com
+export DNS01_HETZNER_API_TOKEN=XXX
+export CADDY_CA_URL=https://acme-staging-v02.api.letsencrypt.org/directory
+#export CADDY_CA_URL=https://acme-v02.api.letsencrypt.org/directory
+
+docker compose -f docker-compose.live.yml up --build -d
