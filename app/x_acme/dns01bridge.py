@@ -102,10 +102,14 @@ def run_dns01_bridge(http01_x509_csr: x509.CertificateSigningRequest, subject_do
         certbot_main.display_obj.set_display(displayer)
     
     # Run certbot DNS01
-    cert_bytes, chain_bytes = run_dns01_certonly(config=c_NamespaceConfig, plugins=c_pluginRegistry)
-    # return result in expected format
-    cert = x509.load_pem_x509_certificate(cert_bytes, None)
-    return ca_model.SignedCertInfo(cert, (cert_bytes + chain_bytes).decode("utf-8"))
+    try:
+        cert_bytes, chain_bytes = run_dns01_certonly(config=c_NamespaceConfig, plugins=c_pluginRegistry)
+        # return result in expected format
+        cert = x509.load_pem_x509_certificate(cert_bytes, None)
+        return ca_model.SignedCertInfo(cert, (cert_bytes + chain_bytes).decode("utf-8"))
+    except Exception as e:
+        logger.error(e)
+    return
 
 def run_dns01_certonly(config: configuration.NamespaceConfig, plugins: plugins_disco.PluginsRegistry) -> Tuple[
                            Optional[str], Optional[str], Optional[str], Optional[bytes], Optional[bytes]]:
@@ -130,6 +134,7 @@ def run_dns01_certonly(config: configuration.NamespaceConfig, plugins: plugins_d
     le_client = _init_le_client(config, auth, None)
     if config.finalize_timeout_seconds:
         le_client.finalize_until_utc = datetime.datetime.utcnow() + datetime.timedelta(0, int(config.finalize_timeout_seconds))
+        logger.info(f"Setting finalize timeout to {le_client.finalize_until_utc} (now + {config.finalize_timeout_seconds}s)")
 
     if not config.csr:        
         raise errors.ConfigurationError("Supports only csr mode")
