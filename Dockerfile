@@ -9,7 +9,7 @@ ENV PYTHONUNBUFFERED=True
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt && \
-    pip install --no-cache-dir --upgrade "certbot-dns-hetzner==1.0.3"
+    pip install --no-cache-dir --upgrade "certbot-dns-hetzner-cloud==1.0.5"
 
 RUN mkdir -p /usr/lib/acme-server/etc/letsencrypt && \
     mkdir -p /usr/lib/acme-server/var/lib/letsencrypt && \

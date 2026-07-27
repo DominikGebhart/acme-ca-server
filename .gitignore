@@ -161,3 +161,7 @@ cython_debug/
 #.idea/
 
 infra/*.sh
+
+# Runtime state & secrets (Postgres data, Caddy data, ACME account/cert private keys)
+infra/*_data/
+infra/hetzner.ini
